@@ -1,0 +1,49 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_34-138ee281803bb4248ee928a323e577512f07d4c6",
+  "solcVersion": "0.8.34",
+  "solcLongVersion": "0.8.34+commit.80d5c536",
+  "compilerType": "solc",
+  "toolVersions": {
+    "hardhat": "3.18.0"
+  },
+  "userSourceNameMap": {
+    "contracts/DecentraStore.sol": "project/contracts/DecentraStore.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "osaka",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode.linkReferences",
+            "evm.bytecode.object",
+            "evm.bytecode.opcodes",
+            "evm.bytecode.sourceMap",
+            "evm.deployedBytecode.immutableReferences",
+            "evm.deployedBytecode.linkReferences",
+            "evm.deployedBytecode.object",
+            "evm.deployedBytecode.opcodes",
+            "evm.deployedBytecode.sourceMap",
+            "evm.methodIdentifiers"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/DecentraStore.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\n\ncontract DecentraStore {\n    string public projectName = \"DecentraStore\";\n\n    struct FileRecord {\n        string fileHash;\n        string providerId;\n        uint256 timestamp;\n    }\n\n    struct ProviderAllocation {\n        string providerId;\n        uint256 storageGB;\n    }\n\n    struct Rental {\n        string rentalId;\n        string renterId;\n        uint256 totalStorageGB;\n        uint256 startTime;\n        uint256 expiryTime;\n        uint256 totalCost;\n        string status;\n    }\n\n    FileRecord[] public files;\n    \n    // Mapping from rentalId to Rental struct\n    mapping(string => Rental) private rentals;\n    // Mapping from rentalId to array of ProviderAllocations\n    mapping(string => ProviderAllocation[]) private rentalAllocations;\n    // Array to keep track of rental IDs\n    string[] private rentalIds;\n\n    event RentalCreated(string rentalId, string renterId, uint256 totalStorageGB, uint256 expiryTime);\n    event ProviderAllocated(string rentalId, string providerId, uint256 storageGB);\n    event RentalExpired(string rentalId);\n\n    function registerFile(\n        string memory _fileHash,\n        string memory _providerId\n    ) public {\n        files.push(\n            FileRecord(\n                _fileHash,\n                _providerId,\n                block.timestamp\n            )\n        );\n    }\n\n    function getFileCount() public view returns (uint256) {\n        return files.length;\n    }\n\n    function createRental(\n        string memory _rentalId,\n        string memory _renterId,\n        uint256 _totalStorageGB,\n        uint256 _startTime,\n        uint256 _expiryTime,\n        uint256 _totalCost,\n        string[] memory _providerIds,\n        uint256[] memory _storageGBs\n    ) public {\n        require(bytes(rentals[_rentalId].rentalId).length == 0, \"Rental already exists\");\n        require(_providerIds.length == _storageGBs.length, \"Arrays length mismatch\");\n\n        rentals[_rentalId] = Rental({\n            rentalId: _rentalId,\n            renterId: _renterId,\n            totalStorageGB: _totalStorageGB,\n            startTime: _startTime,\n            expiryTime: _expiryTime,\n            totalCost: _totalCost,\n            status: \"ACTIVE\"\n        });\n\n        rentalIds.push(_rentalId);\n\n        for (uint i = 0; i < _providerIds.length; i++) {\n            rentalAllocations[_rentalId].push(ProviderAllocation({\n                providerId: _providerIds[i],\n                storageGB: _storageGBs[i]\n            }));\n            emit ProviderAllocated(_rentalId, _providerIds[i], _storageGBs[i]);\n        }\n\n        emit RentalCreated(_rentalId, _renterId, _totalStorageGB, _expiryTime);\n    }\n\n    function expireRental(string memory _rentalId) public {\n        require(bytes(rentals[_rentalId].rentalId).length != 0, \"Rental does not exist\");\n        require(keccak256(bytes(rentals[_rentalId].status)) == keccak256(bytes(\"ACTIVE\")), \"Rental is not active\");\n        require(block.timestamp >= rentals[_rentalId].expiryTime, \"Rental has not expired yet\");\n\n        rentals[_rentalId].status = \"EXPIRED\";\n        emit RentalExpired(_rentalId);\n    }\n\n    function getRental(string memory _rentalId) public view returns (Rental memory) {\n        return rentals[_rentalId];\n    }\n\n    function getRentalAllocations(string memory _rentalId) public view returns (ProviderAllocation[] memory) {\n        return rentalAllocations[_rentalId];\n    }\n    \n    function isRentalActive(string memory _rentalId) public view returns (bool) {\n        if (bytes(rentals[_rentalId].rentalId).length == 0) return false;\n        if (keccak256(bytes(rentals[_rentalId].status)) != keccak256(bytes(\"ACTIVE\"))) return false;\n        if (block.timestamp >= rentals[_rentalId].expiryTime) return false;\n        return true;\n    }\n}"
+      }
+    }
+  }
+}

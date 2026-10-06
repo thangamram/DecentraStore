@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Secrets
+*.key
+*.pem
+*.secret
+
+# Hardhat
+blockchain/yes/artifacts/
+blockchain/yes/cache/
+blockchain/yes/node_modules/
+
+# Frontend build
+frontend/dist/
+frontend/node_modules/
+
+# Backend
+backend/node_modules/
+
+# Electron
+desktop-client/node_modules/
+desktop-client/dist/
+
+# Provider dependencies
+storage-providers/**/node_modules/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

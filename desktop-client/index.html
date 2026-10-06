@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>DecentraStore Client</title>
+  <style>
+    :root {
+      --bg-main: #0f172a; --bg-secondary: #1e293b; --primary: #3b82f6;
+      --text: #f1f5f9; --text-secondary: #94a3b8; --border: #334155;
+    }
+    body { margin: 0; font-family: -apple-system, sans-serif; background-color: var(--bg-main); color: var(--text); display: flex; flex-direction: column; height: 100vh; -webkit-user-select: none; }
+    .titlebar { height: 32px; -webkit-app-region: drag; display: flex; align-items: center; padding: 0 16px; font-size: 13px; font-weight: 500; background-color: var(--bg-main); border-bottom: 1px solid var(--border); }
+    .content { flex: 1; display: flex; }
+    .sidebar { width: 220px; background-color: var(--bg-secondary); border-right: 1px solid var(--border); padding: 16px; }
+    .main { flex: 1; padding: 24px; overflow-y: auto; }
+    .btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; }
+    .btn:hover { background: #2563eb; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-small { padding: 4px 10px; font-size: 12px; }
+    
+    .view-panel { display: none; }
+    .auth-view { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
+    .card { background: var(--bg-secondary); border: 1px solid var(--border); padding: 20px; border-radius: 8px; margin-bottom: 16px; }
+    input, select { background: var(--bg-main); border: 1px solid var(--border); color: white; padding: 8px; border-radius: 4px; width: 100%; margin-bottom: 12px; box-sizing: border-box; }
+    .file-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--border); }
+    .file-icon { font-size: 24px; margin-right: 16px; }
+    .nav-item { padding: 8px; margin-bottom: 4px; border-radius: 4px; cursor: pointer; color: var(--text-secondary); }
+    .nav-item.active { background: rgba(59, 130, 246, 0.1); color: var(--primary); font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div class="titlebar">DecentraStore Client</div>
+  <div class="content">
+    
+    <!-- AUTH VIEW -->
+    <div id="auth-view" class="main auth-view">
+      <div class="card" style="text-align: center; width: 300px;">
+        <h2 style="margin-top:0;">Desktop Login</h2>
+        <input type="text" id="username" placeholder="Username (e.g. USER-001)"><br>
+        <button class="btn" id="login-btn" style="width:100%;">Connect Client</button>
+        <div id="login-error" style="color: #ef4444; margin-top: 10px; font-size: 13px;"></div>
+      </div>
+    </div>
+
+    <!-- MAIN APP VIEW -->
+    <div id="app-view" class="content view-panel" style="width:100%;">
+      <div class="sidebar">
+        <h3 style="margin-top: 0; font-size: 14px; text-transform: uppercase; color: var(--text-secondary);">Locations</h3>
+        <div class="nav-item active" id="nav-drive">☁ DecentraStore (D:)</div>
+        <div class="nav-item" id="nav-market">🛒 Marketplace</div>
+        
+        <div style="margin-top: 40px;">
+          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Storage Usage</div>
+          <div id="capacity-text" style="font-weight: 500; margin-bottom: 4px; font-size:13px;">0 MB / 0 GB</div>
+          <div style="height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;">
+            <div id="capacity-bar" style="width: 0%; height: 100%; background: var(--primary);"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="main">
+        <!-- DRIVE TAB -->
+        <div id="tab-drive">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 style="margin: 0;">DecentraStore (D:)</h2>
+            <button class="btn" id="upload-btn">Upload File</button>
+          </div>
+          
+          <div id="status-banner" style="display:none; padding: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 6px; margin-bottom: 16px;">
+            ⚠ Your storage rental has expired. Renew your rental in the Marketplace to upload files.
+          </div>
+          
+          <div id="file-list" class="card" style="padding: 0;">
+            <div style="padding: 16px; color: var(--text-secondary); text-align: center;" id="empty-state">No files uploaded yet.</div>
+          </div>
+        </div>
+        
+        <!-- MARKETPLACE TAB -->
+        <div id="tab-market" style="display: none;">
+          <h2>Storage Marketplace</h2>
+          <div class="card" style="max-width: 500px;">
+            <h3>Step 1: Storage Requirements</h3>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 20px;">
+              Enter your required capacity and duration to search the decentralized network.
+            </p>
+            
+            <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+              <div style="flex: 2;">
+                <label style="display:block; margin-bottom:4px; font-size: 14px;">Required Storage</label>
+                <input type="number" id="rent-amt" value="10" min="1">
+              </div>
+              <div style="flex: 1;">
+                <label style="display:block; margin-bottom:4px; font-size: 14px;">Unit</label>
+                <select id="rent-unit">
+                  <option value="MB">MB</option>
+                  <option value="GB" selected>GB</option>
+                  <option value="TB">TB</option>
+                </select>
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+              <label style="display:block; margin-bottom:4px; font-size: 14px;">Duration (Months)</label>
+              <input type="number" id="rent-months" value="2" min="1">
+            </div>
+            
+            <button class="btn" id="search-providers-btn" style="width: 100%;">Search Providers</button>
+          </div>
+
+          <div class="card" id="provider-results-card" style="max-width: 500px; display: none;">
+            <h3>Step 2: Choose a Provider</h3>
+            <div id="provider-results-list" style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px;"></div>
+            <button class="btn" id="confirm-rent-btn" style="width: 100%; display: none;">Confirm Rental</button>
+            <div id="rent-msg" style="margin-top: 12px; font-size: 13px;"></div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let activeFiles = [];
+    let allProviders = [];
+    let selectedProviderId = null;
+    let searchCriteria = null;
+    
+    // UI Navigation
+    document.getElementById('nav-drive').onclick = () => switchTab('drive');
+    document.getElementById('nav-market').onclick = () => switchTab('market');
+    
+    function switchTab(tab) {
+      document.getElementById('nav-drive').classList.toggle('active', tab === 'drive');
+      document.getElementById('nav-market').classList.toggle('active', tab === 'market');
+      document.getElementById('tab-drive').style.display = tab === 'drive' ? 'block' : 'none';
+      document.getElementById('tab-market').style.display = tab === 'market' ? 'block' : 'none';
+    }
+
+    document.getElementById('login-btn').addEventListener('click', async () => {
+      const username = document.getElementById('username').value;
+      const res = await window.electronAPI.login(username);
+      if(res.success) {
+        currentUser = res.user;
+        document.getElementById('auth-view').style.display = 'none';
+        document.getElementById('app-view').style.display = 'flex';
+        checkRentalStatus();
+      } else {
+        document.getElementById('login-error').innerText = res.error;
+      }
+    });
+
+    async function checkRentalStatus() {
+      const res = await window.electronAPI.getRentalStatus(currentUser.id);
+      if(res.success) {
+        activeFiles = res.files || [];
+        renderFiles();
+        
+        if(res.hasActiveRental) {
+          const usedBytes = activeFiles.reduce((acc, f) => acc + f.sizeBytes, 0);
+          const usedMB = (usedBytes / (1024 * 1024)).toFixed(1);
+          const totalGB = res.totalAllocated;
+          const percent = Math.min(100, (usedBytes / (totalGB * 1024 * 1024 * 1024)) * 100);
+          
+          document.getElementById('capacity-text').innerText = `${usedMB} MB Used / ${totalGB} GB Total`;
+          document.getElementById('capacity-bar').style.width = `${percent}%`;
+          
+          document.getElementById('status-banner').style.display = 'none';
+          document.getElementById('upload-btn').disabled = false;
+        } else {
+          document.getElementById('capacity-text').innerText = `0 GB (No Active Rental)`;
+          document.getElementById('capacity-bar').style.width = `0%`;
+          document.getElementById('status-banner').style.display = 'block';
+          document.getElementById('upload-btn').disabled = true;
+        }
+      }
+    }
+    
+    function renderFiles() {
+      const list = document.getElementById('file-list');
+      if (activeFiles.length === 0) {
+        list.innerHTML = `<div style="padding: 16px; color: var(--text-secondary); text-align: center;">No files uploaded yet.</div>`;
+        return;
+      }
+      
+      list.innerHTML = activeFiles.map(f => {
+        const displayName = f.originalName.replace(/\.enc$/, '');
+        return `
+        <div class="file-item">
+          <div style="display:flex; align-items:center;">
+            <div class="file-icon">📄</div>
+            <div>
+              <div style="font-weight: 500;">${displayName}</div>
+              <div style="font-size: 12px; color: var(--text-secondary);">
+                Size: ${(f.sizeBytes/1024/1024).toFixed(2)} MB • Uploaded: ${new Date(f.uploadedAt).toLocaleString()}
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-small" onclick='downloadFile(${JSON.stringify(f)})'>Download</button>
+        </div>
+        `;
+      }).join('');
+    }
+
+    window.downloadFile = async (f) => {
+      const btn = event.target;
+      btn.innerText = "Decrypting...";
+      btn.disabled = true;
+      const res = await window.electronAPI.downloadFile(f);
+      if(res.success) {
+        btn.innerText = "Downloaded";
+      } else {
+        alert("Failed to download/decrypt: " + res.error);
+        btn.innerText = "Download";
+        btn.disabled = false;
+      }
+    };
+
+    document.getElementById('upload-btn').addEventListener('click', async () => {
+      const filePath = await window.electronAPI.openFileDialog();
+      if(filePath) {
+        document.getElementById('upload-btn').innerText = 'Encrypting...';
+        const res = await window.electronAPI.uploadFile(filePath, currentUser.id);
+        document.getElementById('upload-btn').innerText = 'Upload File';
+        
+        if(res.success) {
+          checkRentalStatus();
+        } else {
+          alert('Upload failed: ' + res.error);
+        }
+      }
+    });
+    
+    // Step 1: Search Providers
+    document.getElementById('search-providers-btn').addEventListener('click', async () => {
+      const amt = Number(document.getElementById('rent-amt').value);
+      const unit = document.getElementById('rent-unit').value;
+      const months = Number(document.getElementById('rent-months').value);
+      
+      let gbEquivalent = amt;
+      if (unit === 'MB') gbEquivalent = amt / 1024;
+      if (unit === 'TB') gbEquivalent = amt * 1024;
+      
+      searchCriteria = { gbEquivalent, months };
+      
+      const res = await window.electronAPI.getProviders();
+      if(res.success) {
+        const resultsCard = document.getElementById('provider-results-card');
+        const resultsList = document.getElementById('provider-results-list');
+        const confirmBtn = document.getElementById('confirm-rent-btn');
+        document.getElementById('rent-msg').innerText = "";
+        selectedProviderId = null;
+        
+        // Filter providers who have enough capacity
+        const capableProviders = res.providers.filter(p => p.availableStorageGB >= gbEquivalent);
+        
+        resultsCard.style.display = 'block';
+        
+        if(capableProviders.length === 0) {
+          resultsList.innerHTML = `<div style="color: #ef4444; padding: 12px; background: rgba(239,68,68,0.1); border-radius: 4px;">No providers have enough available capacity for your request.</div>`;
+          confirmBtn.style.display = 'none';
+        } else {
+          resultsList.innerHTML = capableProviders.map(p => {
+            const totalCost = (p.pricePerGBMonth * gbEquivalent * months).toFixed(2);
+            const sym = p.currency === 'USD' ? '$' : '₹';
+            return `
+              <div class="provider-option" style="padding: 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer;" onclick="selectProvider('${p.providerId}', this)">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong>${p.providerName}</strong>
+                  <span style="color: #10b981; font-weight: bold;">${sym} ${totalCost} Total</span>
+                </div>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">
+                  Rate: ${sym}${p.pricePerGBMonth} / GB / Month
+                </div>
+              </div>
+            `;
+          }).join('');
+          confirmBtn.style.display = 'block';
+          confirmBtn.disabled = true;
+          confirmBtn.innerText = "Select a provider above";
+        }
+      }
+    });
+
+    window.selectProvider = (id, el) => {
+      selectedProviderId = id;
+      document.querySelectorAll('.provider-option').forEach(opt => opt.style.borderColor = 'var(--border)');
+      el.style.borderColor = 'var(--primary)';
+      const confirmBtn = document.getElementById('confirm-rent-btn');
+      confirmBtn.disabled = false;
+      confirmBtn.innerText = "Confirm Rental";
+    };
+    
+    // Step 2: Confirm Rental
+    document.getElementById('confirm-rent-btn').addEventListener('click', async () => {
+      if(!selectedProviderId) return;
+      const msgEl = document.getElementById('rent-msg');
+      
+      msgEl.style.color = 'var(--text-secondary)';
+      msgEl.innerText = 'Processing rental allocation on backend...';
+      
+      const payload = {
+        renterId: currentUser.id,
+        storageGB: searchCriteria.gbEquivalent,
+        durationMonths: searchCriteria.months,
+        allocations: [{ providerId: selectedProviderId, storageGB: searchCriteria.gbEquivalent }]
+      };
+      
+      const res = await window.electronAPI.createRental(payload);
+      if(res.success) {
+        msgEl.style.color = '#10b981';
+        msgEl.innerText = 'Rental successful! Drive capacity updated.';
+        checkRentalStatus();
+        setTimeout(() => switchTab('drive'), 1500);
+      } else {
+        msgEl.style.color = '#ef4444';
+        msgEl.innerText = 'Failed: ' + res.error;
+      }
+    });
+    
+    setInterval(() => {
+      if(currentUser) checkRentalStatus();
+    }, 5000);
+  </script>
+</body>
+</html>
